@@ -37,6 +37,10 @@ function CheckoutForm({ booking, onCreateBooking, onPaymentSuccess, amount, toke
         details: { ...booking.det, notes: "Paid via summary page" }
       });
 
+      // For new/guest users, the token comes back in the booking response
+      const effectiveToken = token || res.token;
+      console.log("[Payment] Token available:", !!effectiveToken);
+
       if (!res.clientSecret) {
         throw new Error("Unable to initialize payment. Please try again.");
       }
@@ -57,11 +61,13 @@ function CheckoutForm({ booking, onCreateBooking, onPaymentSuccess, amount, toke
         setMsg(error.message);
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
         // 3. Mark booking as paid/upcoming
+        console.log(`[Payment] ✅ Payment succeeded! Marking booking ${res.booking.id} as upcoming...`);
         await apiRequest(`/bookings/${res.booking.id}/status`, {
           method: "PATCH",
-          token,
+          token: effectiveToken,
           body: { status: "upcoming" }
         });
+        console.log(`[Payment] 🎉 Booking confirmed. Emails should have been sent.`);
         onPaymentSuccess();
       }
     } catch (err) {
