@@ -3,9 +3,11 @@ import BrandLogo from "../components/Shared/BrandLogo";
 import BookingForm from "../components/Booking/BookingForm";
 
 const IMAGES = [
-  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXnJAbhL9nlViJJTfngOT2DCfU0HGibfJn3A&s",
-  "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80&w=1000",
-  "https://images.unsplash.com/photo-1520529611486-9ac10d29188e?auto=format&fit=crop&q=80&w=1000"
+  "https://snippo.com/wp-content/uploads/2026/03/Gemini_Generated_Image_dd81sgdd81sgdd81-scaled.png",
+  "https://snippo.com/wp-content/uploads/2026/03/Gemini_Generated_Image_cmuqe8cmuqe8cmuq-scaled.png",
+  "https://snippo.com/wp-content/uploads/2026/03/Gemini_Generated_Image_42xzze42xzze42xz-1-scaled.png",
+  "https://snippo.com/wp-content/uploads/2026/02/Gemini_Generated_Image_9wn7gp9wn7gp9wn7-1-2048x1143.jpg",
+  "https://snippo.com/wp-content/uploads/2026/02/Gemini_Generated_Image_2i7vw82i7vw82i7v-1-2048x1143.jpg"
 ];
 
 export default function HomePage({ 

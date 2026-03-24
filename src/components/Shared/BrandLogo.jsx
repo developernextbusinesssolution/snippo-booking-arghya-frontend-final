@@ -2,9 +2,10 @@ export const LOGO_URL = "/logo.webp";
 
 export default function BrandLogo({ size = 50, className = "", onClick = null }) {
   return (
-    <span
+    <a
+      href="https://snippo.com/"
       className={className}
-      style={{ display: "inline-flex", alignItems: "center", lineHeight: 0, cursor: onClick ? "pointer" : "default" }}
+      style={{ display: "inline-flex", alignItems: "center", lineHeight: 0, cursor: "pointer", textDecoration: "none" }}
       onClick={onClick || undefined}
     >
       <img
@@ -13,6 +14,6 @@ export default function BrandLogo({ size = 50, className = "", onClick = null })
         className="brand-logo-img"
         style={{ height: size, width: "auto" }}
       />
-    </span>
+    </a>
   );
 }
