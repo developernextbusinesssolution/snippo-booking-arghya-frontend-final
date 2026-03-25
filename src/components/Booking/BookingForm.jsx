@@ -42,19 +42,56 @@ function StepDate({ sel, onSel }) {
   );
 }
 
-function StepTime({ sel, onSel, busySlots, stf, date, onBackToDate }) {
+function StepTime({ sel, onSel, busySlots, stf, staff, date, onBackToDate }) {
+  const dayName = date ? date.toLocaleDateString("en-US", { weekday: "long" }) : "";
+  const dateStr = date ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }) : "";
+
   const blockedTimes = (busySlots || [])
-    .filter(b => (!stf || b.staffId === stf.id) && b.dt === (date ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }) : ""))
+    .filter(b => (!stf || b.staffId === stf.id) && b.dt === dateStr)
     .map(b => b.t);
 
-  if (TIMES.every(t => blockedTimes.includes(t))) {
+  const isTimeInRange = (t, start, end) => {
+    if (!start || !end) return true;
+    return t >= start && t <= end;
+  };
+
+  const getDayAvail = (s, dName) => {
+    if (s.availability && s.availability.length === 7) {
+      return s.availability.find(a => a.day === dName);
+    }
+    // Fallback to legacy avail array
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const idx = DAYS.indexOf(dName);
+    if (idx === -1) return null;
+    return { enabled: !!s.avail?.[idx], startTime: "09:00", endTime: "18:00" };
+  };
+
+  const filteredTimes = TIMES.filter(t => {
+    if (blockedTimes.includes(t)) return false;
+    
+    if (stf) {
+      const av = getDayAvail(stf, dayName);
+      if (!av || !av.enabled) return false;
+      return isTimeInRange(t, av.startTime, av.endTime);
+    } else {
+      // If no staff selected, show time if AT LEAST ONE staff is available
+      return staff.some(s => {
+        if (!s.active) return false;
+        const av = getDayAvail(s, dayName);
+        if (!av || !av.enabled) return false;
+        return isTimeInRange(t, av.startTime, av.endTime);
+      });
+    }
+  });
+
+  if (filteredTimes.length === 0) {
     return (
       <div className="se anim-fade-in" style={{ textAlign: "center", padding: 40 }}>
         <div className="glass" style={{ padding: 40, borderRadius: 24, background: "rgba(230,57,70,0.05)" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📅</div>
-          <h3 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8, color: "var(--red)" }}>Fully Booked</h3>
+          <h3 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8, color: "var(--red)" }}>No Slots Available</h3>
           <p style={{ color: "var(--muted)", maxWidth: 350, margin: "0 auto 24px" }}>
-            All slots are booked for {date?.toLocaleDateString("en-US", { month: "long", day: "numeric" })}.
+            There are no available slots for {date?.toLocaleDateString("en-US", { month: "long", day: "numeric" })}.
           </p>
           <button className="btn btn-g" onClick={() => onBackToDate()}>Return to Calendar</button>
         </div>
@@ -68,12 +105,16 @@ function StepTime({ sel, onSel, busySlots, stf, date, onBackToDate }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 16, textAlign: "center" }}>SELECT A TIME SLOT</div>
         <div className="tg">
           {TIMES.map(t => {
-            const disabled = blockedTimes.includes(t);
+            const isBlocked = blockedTimes.includes(t);
+            const isOutsideWorkingHours = !filteredTimes.includes(t);
+            const disabled = isBlocked || isOutsideWorkingHours;
+            
             return (
               <div
                 key={t}
                 className={`ts${disabled ? " tbk" : ""}${sel === t ? " tsel" : ""}`}
                 onClick={() => !disabled && onSel(t)}
+                style={isOutsideWorkingHours ? { opacity: 0.3, cursor: "not-allowed" } : {}}
               >
                 {t}
               </div>
@@ -109,8 +150,36 @@ function StepService({ sel, onSel, services }) {
   );
 }
 
-function StepStaff({ sel, onSel, staff, svcId, onDetails, onBackToSvc, onBackToTime }) {
-  const list = staff.filter(s => s.active && (!svcId || s.services.includes(svcId)));
+function StepStaff({ sel, onSel, staff, svcId, date, time, onDetails, onBackToSvc, onBackToTime }) {
+  const dayName = date ? date.toLocaleDateString("en-US", { weekday: "long" }) : "";
+  
+  const isTimeInRange = (t, start, end) => {
+    if (!start || !end) return true;
+    return t >= start && t <= end;
+  };
+
+  const getDayAvail = (s, dName) => {
+    if (s.availability && s.availability.length === 7) {
+      return s.availability.find(a => a.day === dName);
+    }
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const idx = DAYS.indexOf(dName);
+    if (idx === -1) return null;
+    return { enabled: !!s.avail?.[idx], startTime: "09:00", endTime: "18:00" };
+  };
+
+  const list = staff.filter(s => {
+    if (!s.active) return false;
+    if (svcId && !s.services.includes(svcId)) return false;
+    
+    // Check if staff is available on this day and time
+    if (dayName && time) {
+      const av = getDayAvail(s, dayName);
+      if (!av || !av.enabled) return false;
+      if (!isTimeInRange(time, av.startTime, av.endTime)) return false;
+    }
+    return true;
+  });
   if (list.length === 0) {
     return (
       <div className="se anim-fade-in" style={{ textAlign: "center", padding: 40 }}>
@@ -335,9 +404,9 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
       <Progress step={step} steps={steps} />
       <div style={{ minHeight: 400 }}>
         {step === 0 && <StepDate sel={date} onSel={d => { setDate(d); next(); }} />}
-        {step === 1 && <StepTime sel={time} onSel={t => { setTime(t); next(); }} busySlots={bookings} stf={stf} date={date} onBackToDate={back} />}
+        {step === 1 && <StepTime sel={time} onSel={t => { setTime(t); next(); }} busySlots={bookings} stf={stf} staff={staff} date={date} onBackToDate={back} />}
         {step === 2 && <StepService sel={svc} onSel={s => { setSvc(s); next(); }} services={services} />}
-        {step === 3 && <StepStaff sel={stf} onSel={s => { setStf(s); next(); }} staff={staff} svcId={svc?.id} onDetails={setSelectedStaff} onBackToSvc={back} onBackToTime={() => setStep(1)} />}
+        {step === 3 && <StepStaff sel={stf} onSel={s => { setStf(s); next(); }} staff={staff} svcId={svc?.id} date={date} time={time} onDetails={setSelectedStaff} onBackToSvc={back} onBackToTime={() => setStep(1)} />}
         {step === 4 && <StepAccount det={det} onChange={setDet} user={user} onLoginClick={onLoginClick} />}
         {step === 5 && <StepIdentity det={det} onChange={setDet} user={user} />}
       </div>

@@ -76,7 +76,7 @@ function ServiceModal({ svc, onSave, onClose, services: _ }) {
   );
 }
 
-function StaffModal({ member, services, onSave, onClose }) {
+function StaffModal({ member, services, onSave, onClose, onDelete }) {
   const [f, setF] = useState(member || { name: "", role: "", email: "", i: "", c: COLORS[0], services: [], avail: [true, true, true, true, true, false, false] });
   const tSvc = id => setF(p => ({ ...p, services: p.services.includes(id) ? p.services.filter(s => s !== id) : [...p.services, id] }));
   const tDay = i => setF(p => { const a = [...p.avail]; a[i] = !a[i]; return { ...p, avail: a }; });
@@ -173,7 +173,19 @@ function StaffModal({ member, services, onSave, onClose }) {
           <button className="btn btn-g" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-p" style={{ flex: 1 }} onClick={() => { if (!f.name || !f.role) return; onSave(f); }}>
+          {member && (
+            <button 
+              className="btn btn-o" 
+              style={{ flex: 1, color: "var(--red)", border: "1px solid var(--border-red)" }} 
+              onClick={() => {
+                onClose();
+                onDelete?.({ type: "staff", id: member.id, name: member.name });
+              }}
+            >
+              Delete Staff
+            </button>
+          )}
+          <button className="btn btn-p" style={{ flex: 1.5 }} onClick={() => { if (!f.name || !f.role) return; onSave(f); }}>
             {member ? "Save Changes" : "Add Staff Member"}
           </button>
         </div>
@@ -300,7 +312,8 @@ function BookingDetailModal({ booking, onClose, onStatusChange }) {
   );
 }
 
-function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
+function ApprovalDetailsModal({ staff, onApprove, onReject, onClose, staffList = [] }) {
+  const isAlreadyActive = staffList.some(s => s.email === staff.email);
   return (
     <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg" style={{ maxWidth: 500 }}>
@@ -359,12 +372,31 @@ function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
           <button className="btn btn-g" style={{ flex: 1 }} onClick={onClose}>
             Back
           </button>
-          <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { onReject(staff.id); onClose(); }}>
-            Reject Application
-          </button>
-          <button className="btn btn-success" style={{ flex: 1.5 }} onClick={() => { onApprove(staff); onClose(); }}>
-            Approve & Activate
-          </button>
+          {isAlreadyActive ? (
+            <button 
+              className="btn btn-o" 
+              style={{ flex: 2, color: "var(--red)", border: "1px solid var(--border-red)" }} 
+              onClick={() => {
+                onReject(staff.id); // Re-use onReject logic to delete the pending request
+                onClose();
+              }}
+            >
+              Delete Duplicate Request
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { onReject(staff.id); onClose(); }}>
+                Reject Application
+              </button>
+              <button 
+                className="btn btn-success" 
+                style={{ flex: 1.5 }} 
+                onClick={() => { onApprove(staff); onClose(); }}
+              >
+                Approve & Activate
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -439,7 +471,7 @@ function TemplateEditor({ templates, onSave }) {
   );
 }
 
-function UserDetailsModal({ user, onClose }) {
+function UserDetailsModal({ user, onClose, onDelete }) {
   return (
     <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg" style={{ maxWidth: 500 }}>
@@ -524,9 +556,23 @@ function UserDetailsModal({ user, onClose }) {
           </div>
         )}
 
-        <button className="btn btn-g" style={{ width: "100%" }} onClick={onClose}>
-          Close Details
-        </button>
+        <div style={{ display: "flex", gap: 9, marginTop: 10 }}>
+          <button className="btn btn-g" style={{ flex: 1 }} onClick={onClose}>
+            Close
+          </button>
+          {user.role !== "admin" && (
+            <button 
+              className="btn btn-o" 
+              style={{ flex: 1, color: "var(--red)", border: "1px solid var(--border-red)" }} 
+              onClick={() => {
+                onClose();
+                onDelete?.({ type: "user", id: user.id, name: user.name });
+              }}
+            >
+              Delete Account
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -544,6 +590,8 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
   const [delConfirm, setDelConfirm] = useState(null);
   const [bDetail, setBDetail] = useState(null);
   const [bFilter, setBFilter] = useState("all");
+  const [bSort, setBSort] = useState({ field: "createdAt", dir: -1 });
+  const [bCounts, setBCounts] = useState({ all: 0, upcoming: 0, active: 0, completed: 0, cancelled: 0 });
   const [copied, setCopied] = useState(false);
   const [stripeConfig, setStripeConfig] = useState({ publishableKey: "", secretKey: "", connected: false });
   const [isSavingStripe, setIsSavingStripe] = useState(false);
@@ -561,11 +609,19 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
 
   const reloadAdminData = async (targetTab, pageNum = 1) => {
     const limit = getPLimit();
-    const query = new URLSearchParams({ tab: targetTab || sec, page: pageNum, limit });
+    const query = new URLSearchParams({ 
+      tab: targetTab || sec, 
+      page: pageNum, 
+      limit,
+      status: bFilter,
+      sortBy: bSort.field,
+      sortOrder: bSort.dir
+    });
     const data = await apiRequest(`/admin/data?${query}`, { token });
     setServices(data.services || []);
     setStaff(data.staff || []);
     setPendingStaff(data.pendingStaff || []);
+    if (data.bookingCounts) setBCounts(data.bookingCounts);
     
     // Load stripe config if entering payments tab
     if ((targetTab || sec) === "payments") {
@@ -590,10 +646,17 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
   };
 
   useEffect(() => {
-    if (["bookings", "staff", "users", "security", "payments", "emails"].includes(sec)) {
+    if (["bookings", "staff", "users", "security", "payments", "emails", "approvals"].includes(sec)) {
       reloadAdminData(sec, curPages[sec]);
     }
-  }, [sec, curPages]);
+  }, [sec, curPages, bFilter, bSort]);
+
+  // Reset page when filter/sort changes
+  useEffect(() => {
+    if (sec === "bookings") {
+      setCurPages(p => ({ ...p, bookings: 1 }));
+    }
+  }, [bFilter, bSort]);
 
   const saveSvc = async f => {
     try {
@@ -934,7 +997,7 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
               {["all", "upcoming", "active", "completed", "cancelled"].map(f => (
                 <div key={f} className={`filter-pill ${bFilter === f ? "on" : ""}`} onClick={() => setBFilter(f)}>
                   {f[0].toUpperCase() + f.slice(1)}
-                  {f !== "all" && <span style={{ opacity: 0.6 }}> ({bookings.filter(b => b.s === f).length})</span>}
+                  <span style={{ opacity: 0.6 }}> ({bCounts[f] || 0})</span>
                 </div>
               ))}
             </div>
@@ -942,13 +1005,38 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Customer</th>
-                    <th>Service</th>
-                    <th>Staff</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    { [
+                      {l: "ID", f: "id"},
+                      {l: "Customer", f: "customer"},
+                      {l: "Service", f: "service"},
+                      {l: "Staff", f: "staff"},
+                      {l: "Date", f: "date"},
+                      {l: "Amount", f: "amount"},
+                      {l: "Status", f: "status"}
+                    ].map(h => (
+                      <th 
+                        key={h.f} 
+                        onClick={() => setBSort(p => ({ 
+                          field: h.f, 
+                          dir: p.field === h.f ? -p.dir : -1 
+                        }))}
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          {h.l}
+                          {bSort.field === h.f && (
+                            <span style={{ fontSize: 10, color: "var(--red)" }}>
+                              {bSort.dir === 1 ? "▲" : "▼"}
+                            </span>
+                          )}
+                          {bSort.field !== h.f && (
+                            <span style={{ fontSize: 10, color: "var(--border)", opacity: 0.3 }}>
+                              ⇅
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -1089,7 +1177,12 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                           <div className="iava" style={{ background: s.c }}>
                             {s.i}
                           </div>
-                          <div style={{ fontWeight: 600 }}>{s.name}</div>
+                          <div>
+                            <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                              {s.name}
+                              <span className="badge bu" style={{ fontSize: 9, padding: "1px 5px" }}>Verified</span>
+                            </div>
+                          </div>
                         </td>
                         <td>{s.role}</td>
                         <td>
@@ -1271,7 +1364,11 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                           <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span>
-                          <span className="badge bw">Pending Approval</span>
+                          {staff.some(s => s.email === p.email) ? (
+                            <span className="badge bu">Already Verified</span>
+                          ) : (
+                            <span className="badge bw">Pending Approval</span>
+                          )}
                           <span className="badge bc" style={{ fontSize: 10 }}>
                             Inactive
                           </span>
@@ -1300,6 +1397,7 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
             onApprove={approveStaff} 
             onReject={rejectStaff} 
             onClose={() => setViewingStaff(null)} 
+            staffList={staff}
           />
         )}
 
@@ -1455,11 +1553,11 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
       </div>
 
       {svcModal && <ServiceModal svc={svcModal === "add" ? null : svcModal} services={services} onSave={saveSvc} onClose={() => setSvcModal(null)} />}
-      {staffModal && <StaffModal member={staffModal === "add" ? null : staffModal} services={services} onSave={saveStaff} onClose={() => setStaffModal(null)} />}
+      {staffModal && <StaffModal member={staffModal === "add" ? null : staffModal} services={services} onSave={saveStaff} onClose={() => setStaffModal(null)} onDelete={setDelConfirm} />}
       {secModal && <SecurityModal onSave={saveSecurity} onClose={() => setSecModal(null)} />}
       {delConfirm && <Confirm msg={`Delete "${delConfirm.name}"? This action cannot be undone.`} onOk={doDelete} onCancel={() => setDelConfirm(null)} />}
       {bDetail && <BookingDetailModal booking={bDetail} onClose={() => setBDetail(null)} onStatusChange={updateStatus} />}
-      {viewingUserDetail && <UserDetailsModal user={viewingUserDetail} onClose={() => setViewingUserDetail(null)} />}
+      {viewingUserDetail && <UserDetailsModal user={viewingUserDetail} onClose={() => setViewingUserDetail(null)} onDelete={setDelConfirm} />}
       <Toasts toasts={toasts} />
     </div>
   );

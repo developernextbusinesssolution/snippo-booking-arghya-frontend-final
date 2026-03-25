@@ -176,35 +176,74 @@ export default function StaffDetailsModal({ member, onClose }) {
           </div>
         )}
 
-          {/* Bio */}
-          {member.bio && (
-            <div
-              style={{
-                background: "var(--glass)",
-                border: "1px solid var(--border)",
-                borderRadius: 12,
-                padding: "12px 16px",
-                fontSize: 13,
-                color: "var(--muted)",
-                lineHeight: 1.7,
-                textAlign: "left",
-                marginBottom: 14,
-              }}
-            >
+              {/* Bio */}
+              {member.bio && (
+                <div
+                  style={{
+                    background: "var(--glass)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    padding: "12px 16px",
+                    fontSize: 13,
+                    color: "var(--muted)",
+                    lineHeight: 1.7,
+                    textAlign: "left",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--muted2)",
+                      letterSpacing: ".06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    BIO
+                  </div>
+                  {member.bio}
+                </div>
+              )}
+
+              {/* Working Hours */}
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--muted2)",
-                  letterSpacing: ".06em",
-                  marginBottom: 6,
+                  background: "var(--glass)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                  fontSize: 13,
+                  color: "var(--muted)",
+                  textAlign: "left",
+                  marginBottom: 14,
                 }}
               >
-                BIO
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--muted2)",
+                    letterSpacing: ".06em",
+                    marginBottom: 10,
+                  }}
+                >
+                  WORKING HOURS
+                </div>
+                {(member.availability?.length === 7 ? member.availability : []).map(a => (
+                  <div key={a.day} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+                    <span style={{ color: a.enabled ? "var(--text)" : "var(--muted2)" }}>{a.day}</span>
+                    <span style={{ fontWeight: 600, color: a.enabled ? "var(--success)" : "var(--muted2)" }}>
+                      {a.enabled ? `${a.startTime} - ${a.endTime}` : "Day off"}
+                    </span>
+                  </div>
+                ))}
+                {(!member.availability || member.availability.length !== 7) && (
+                  <div style={{ fontSize: 12, color: "var(--muted2)", fontStyle: "italic" }}>
+                    Standard hours: 9:00 AM – 6:00 PM
+                  </div>
+                )}
               </div>
-              {member.bio}
-            </div>
-          )}
             </>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>

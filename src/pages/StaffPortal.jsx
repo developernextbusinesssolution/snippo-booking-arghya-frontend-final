@@ -176,11 +176,45 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
   });
   const [saved, setSaved] = useState({ ...prof });
   const [avail, setAvail] = useState(me?.avail || [true, true, true, true, true, false, false]);
+  const [availability, setAvailability] = useState(me?.availability?.length === 7 ? me.availability : DAYS.map((d, i) => ({
+    day: d,
+    enabled: me?.avail?.[i] ?? (i < 5),
+    startTime: "09:00",
+    endTime: "18:00"
+  })));
   const [myServices, setMyServices] = useState(me?.services || []);
+
+  // Sync state if 'me' changes (e.g. after fresh load or update)
+  useEffect(() => {
+    if (me) {
+      setProf({
+        name: me.name || "",
+        role: me.role || "",
+        email: me.email || "",
+        profileImage: me.profileImage || "",
+        experience: me.experience || "",
+        totalWorkDone: me.totalWorkDone || 0,
+        bio: me.bio || "",
+        hourlyRate: me.hourlyRate || 0,
+      });
+      if (me.avail) setAvail(me.avail);
+      if (me.availability?.length === 7) {
+        setAvailability(me.availability);
+      } else if (me.avail) {
+        setAvailability(DAYS.map((d, i) => ({
+          day: d,
+          enabled: !!me.avail[i],
+          startTime: "09:00",
+          endTime: "18:00"
+        })));
+      }
+      if (me.services) setMyServices(me.services);
+    }
+  }, [me]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const { toasts, toast } = useToast();
-  const myBookings = bookings.filter(b => b.stf === me?.name || b.stf === staffUser?.name);
+  const myBookings = bookings.filter(b => (b.staffId && b.staffId === me?.id) || (b.staffId && b.staffId === staffUser?.staffId));
   const bmap = { upcoming: "bu", completed: "bc", cancelled: "bx", active: "ba" };
 
   const nav = [
@@ -241,11 +275,14 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
   const toggleSvc = id => setMyServices(p => (p.includes(id) ? p.filter(s => s !== id) : [...p, id]));
 
   const saveAvail = async () => {
+    console.log("[StaffPortal] Saving availability:", availability);
     try {
-      const updated = await apiRequest("/staff/me/availability", { method: "PUT", token, body: { avail } });
+      const updated = await apiRequest("/staff/me/availability", { method: "PUT", token, body: { availability } });
+      console.log("[StaffPortal] Save successful. Response:", updated);
       if (me?.id) setAllStaff(p => p.map(s => (s.id === me.id ? { ...s, ...updated } : s)));
       toast("Availability saved!", "success");
     } catch (e) {
+      console.error("[StaffPortal] Save failed:", e);
       toast(e.message || "Failed to save availability", "error");
     }
   };
@@ -432,16 +469,20 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
         {tab === "availability" && (
           <>
             <h1 className="sh">Availability</h1>
-            <p className="ss">Set your working days</p>
-            <div className="glass" style={{ padding: "clamp(14px,3vw,22px)", maxWidth: 480 }}>
+            <p className="ss">Set your working days and hours</p>
+            <div className="glass" style={{ padding: "clamp(14px,3vw,22px)", maxWidth: 510 }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
-                {DAYS.map((d, i) => (
+                {availability.map((a, i) => (
                   <div
-                    key={d}
+                    key={a.day}
                     onClick={() => {
-                      const a = [...avail];
-                      a[i] = !a[i];
-                      setAvail(a);
+                      const updated = [...availability];
+                      updated[i].enabled = !updated[i].enabled;
+                      setAvailability(updated);
+                      // Sync legacy avail state too
+                      const newAvail = [...avail];
+                      newAvail[i] = updated[i].enabled;
+                      setAvail(newAvail);
                     }}
                     style={{
                       padding: "9px 16px",
@@ -449,21 +490,50 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: "pointer",
-                      background: avail[i] ? "var(--red-dim)" : "var(--glass)",
-                      border: `1px solid ${avail[i] ? "var(--border-red)" : "var(--border)"}`,
-                      color: avail[i] ? "var(--red)" : "var(--muted)",
+                      background: a.enabled ? "var(--red-dim)" : "var(--glass)",
+                      border: `1px solid ${a.enabled ? "var(--border-red)" : "var(--border)"}`,
+                      color: a.enabled ? "var(--red)" : "var(--muted)",
                       transition: "all .15s",
                     }}
                   >
-                    {d.slice(0, 3)}
+                    {a.day.slice(0, 3)}
                   </div>
                 ))}
               </div>
-              <div style={{ marginBottom: 14 }}>
-                {DAYS.map((d, i) => (
-                  <div key={d} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
-                    <span style={{ color: avail[i] ? "var(--text)" : "var(--muted)" }}>{d}</span>
-                    <span style={{ color: avail[i] ? "var(--success)" : "var(--muted2)", fontWeight: 600 }}>{avail[i] ? "9:00 AM – 6:00 PM" : "Day off"}</span>
+              <div style={{ marginBottom: 18 }}>
+                {availability.map((a, i) => (
+                  <div key={a.day} style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10, padding: "12px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: a.enabled ? "var(--text)" : "var(--muted)" }}>{a.day}</div>
+                    
+                    {a.enabled ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input 
+                          type="time" 
+                          className="inp" 
+                          style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
+                          value={a.startTime || "09:00"} 
+                          onChange={e => {
+                            const updated = [...availability];
+                            updated[i].startTime = e.target.value;
+                            setAvailability(updated);
+                          }}
+                        />
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>to</span>
+                        <input 
+                          type="time" 
+                          className="inp" 
+                          style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
+                          value={a.endTime || "18:00"} 
+                          onChange={e => {
+                            const updated = [...availability];
+                            updated[i].endTime = e.target.value;
+                            setAvailability(updated);
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: "var(--muted2)", fontStyle: "italic" }}>Day off</div>
+                    )}
                   </div>
                 ))}
               </div>

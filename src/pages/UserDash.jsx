@@ -663,7 +663,7 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
             {saved.name[0] || "?"}
           </div>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{saved.name}</div>
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>{saved.email}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", wordBreak: "break-all" }}>{saved.email}</div>
         </div>
         {nav.map(n => (
           <div key={n.id} className={`sitem ${tab === n.id ? "act" : ""}`} onClick={() => changeTab(n.id)}>
