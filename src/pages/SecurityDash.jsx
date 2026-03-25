@@ -2,16 +2,21 @@ import React, { useState, useEffect, Fragment } from "react";
 import Toasts, { useToast } from "../components/Shared/Toasts";
 import { apiRequest } from "../utils/api";
 
-export default function SecurityDash({ user: initialUser, onSignOut, token }) {
+export default function SecurityDash({ user: initialUser, onSignOut, token, initialTab = "shifts", initialDate = null, onTabChange, onDateChange }) {
   const [user, setUser] = useState(initialUser);
-  const [tab, setTab] = useState("shifts");
+  const [tab, setTab] = useState(initialTab);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingAvail, setSavingAvail] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [showVerifyModal, setShowVerifyModal] = useState(null); // Booking object to verify
   const { toasts, toast } = useToast();
 
   const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const [avail, setAvail] = useState(initialUser?.availability || DAYS.map(d => ({ day: d, enabled: d !== "Saturday" && d !== "Sunday", startTime: "09:00", endTime: "20:00" })));
+
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
+  useEffect(() => { setSelectedDate(initialDate); }, [initialDate]);
 
   const fetchShifts = async () => {
     setLoading(true);
@@ -30,23 +35,50 @@ export default function SecurityDash({ user: initialUser, onSignOut, token }) {
     // eslint-disable-next-line
   }, []);
 
-  const handleVerify = async (id) => {
+  useEffect(() => {
+    if (initialTab && initialTab !== tab) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    if (onTabChange) onTabChange(newTab);
+    if (newTab !== 'shifts') {
+      setSelectedDate(null);
+      if (onDateChange) onDateChange(null);
+    }
+  };
+
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    if (onDateChange) onDateChange(newDate);
+  };
+
+  const handleVerify = async (booking) => {
+    console.log(`[SecurityDash] Verifying booking ${booking.id}...`);
     try {
-      await apiRequest(`/security/bookings/${id}/verify`, { method: "POST", token });
+      const res = await apiRequest(`/security/bookings/${booking.id}/verify`, { method: "POST", token });
+      console.log(`[SecurityDash] Verification successful for ${booking.id}. Response:`, res);
       toast("Booking verified successfully!", "success");
+      setShowVerifyModal(null);
       fetchShifts();
     } catch (e) {
+      console.error(`[SecurityDash] Verification failed for ${booking.id}:`, e);
       toast(e.message || "Verification failed", "error");
     }
   };
 
   const saveAvail = async () => {
+    console.log("[SecurityDash] Saving availability:", avail);
     setSavingAvail(true);
     try {
       const res = await apiRequest("/security/availability", { method: "PUT", token, body: { availability: avail } });
+      console.log("[SecurityDash] Save successful. Response:", res);
       setAvail(res.availability);
       toast("Availability saved!", "success");
     } catch (e) {
+      console.error("[SecurityDash] Save failed:", e);
       toast(e.message || "Failed to save availability", "error");
     } finally {
       setSavingAvail(false);
@@ -78,7 +110,7 @@ export default function SecurityDash({ user: initialUser, onSignOut, token }) {
           <div style={{ fontSize: 11, color: "var(--muted)" }}>{user?.roleTitle || "Security Officer"}</div>
         </div>
         
-        <div className={`sitem ${tab === "shifts" ? "act" : ""}`} onClick={() => setTab("shifts")}>
+        <div className={`sitem ${tab === "shifts" ? "act" : ""}`} onClick={() => handleTabChange("shifts")}>
           <span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -88,7 +120,7 @@ export default function SecurityDash({ user: initialUser, onSignOut, token }) {
           Duty Schedule
         </div>
 
-        <div className={`sitem ${tab === "availability" ? "act" : ""}`} onClick={() => setTab("availability")}>
+        <div className={`sitem ${tab === "availability" ? "act" : ""}`} onClick={() => handleTabChange("availability")}>
           <span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -115,100 +147,143 @@ export default function SecurityDash({ user: initialUser, onSignOut, token }) {
       <div className="ca">
         {tab === "shifts" && (
           <>
-            <h1 className="sh">Duty Verification Schedule</h1>
-            <p className="ss">Showing all upcoming and active bookings that require security verification.</p>
+            <h1 className="sh">Duty Schedule & Verification</h1>
+            <p className="ss">Showing bookings that fall under your availability. Use the calendar to navigate dates.</p>
             
-            {loading ? (
-              <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading verification slots...</div>
-            ) : bookings.length === 0 ? (
-              <div className="glass" style={{ padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🛡️</div>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>All Clear</div>
-                <p style={{ color: "var(--muted)", fontSize: 13 }}>No bookings scheduled for today</p>
-              </div>
+            {!selectedDate ? (
+              <>
+                <h1 className="sh">Duty Schedule & Verification</h1>
+                <p className="ss">Select a date from the calendar to view detailed bookings and perform verification.</p>
+                <div className="glass" style={{ padding: 24, maxWidth: 440 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16 }}>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
+                    <div className="badge bw">Calendar Navigation</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
+                      <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 900, color: 'var(--muted2)', padding: '5px 0' }}>{d}</div>
+                    ))}
+                    {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }).map((_, i) => {
+                      const day = i + 1;
+                      const dateObj = new Date(new Date().getFullYear(), new Date().getMonth(), day);
+                      const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                      const urlDate = `${dateStr.replace(' ', '-')}-${dateObj.getFullYear()}`;
+                      const dayBookings = bookings.filter(b => b.dt.includes(dateStr));
+                      const isToday = day === new Date().getDate() && new Date().getMonth() === new Date().getMonth();
+                      const isSelected = selectedDate === urlDate;
+                      
+                      return (
+                        <div 
+                          key={i} 
+                          onClick={() => handleDateChange(urlDate)}
+                          style={{ 
+                            aspectRatio: '1/1', 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            borderRadius: 10, 
+                            cursor: 'pointer',
+                            background: isSelected ? 'var(--p)' : (isToday ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)'),
+                            border: isToday ? '1px solid var(--p)' : '1px solid transparent',
+                            transition: 'all .2s'
+                          }}
+                        >
+                          <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#fff' : 'inherit' }}>{day}</span>
+                          {dayBookings.length > 0 && (
+                            <div style={{ width: 4, height: 4, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--p)', marginTop: 2 }}></div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
             ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {sortedDates.map(date => (
-              <div key={date}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <div style={{ height: 1, flex: 1, background: 'linear-gradient(90deg, transparent, var(--border))' }}></div>
-                  <div className="badge bc" style={{ fontSize: 13, padding: '5px 15px', borderRadius: 20 }}>📅 {date}</div>
-                  <div style={{ height: 1, flex: 1, background: 'linear-gradient(90deg, var(--border), transparent)' }}></div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 25 }}>
+                   <button 
+                     className="btn btn-g btn-sm" 
+                     onClick={() => handleDateChange(null)}
+                     style={{ borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                   >
+                     ←
+                   </button>
+                   <div>
+                     <h1 className="sh" style={{ margin: 0 }}>Duty for {selectedDate.split('-').slice(0,2).join(' ')}</h1>
+                     <p className="ss" style={{ margin: 0 }}>Showing verified and pending check-ins for this session.</p>
+                   </div>
                 </div>
-                
+
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {Object.keys(groupedShifts[date]).sort().map(time => (
-                    <div key={time} className="glass" style={{ padding: "0 0 0 0", overflow: 'hidden' }}>
-                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 700, color: 'var(--p)' }}>
-                        🕒 {time} Slot
-                      </div>
-                      <div className="tw">
-                        <table style={{ margin: 0, border: 'none' }}>
-                          <tbody>
-                            {groupedShifts[date][time].map(b => (
-                              <Fragment key={b.id}>
-                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                  <td style={{ padding: '15px 18px', verticalAlign: 'top' }}>
-                                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 4 }}>{b.u}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                        {b.email}
-                                      </span>
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                        {b.phone || "No phone"}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '15px 18px', verticalAlign: 'top' }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700 }}>{b.stf}</div>
-                                    <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>Assigned Staff</div>
-                                  </td>
-                                  <td style={{ padding: '15px 18px', verticalAlign: 'top' }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{b.svc}</div>
-                                    <div style={{ fontSize: 11, color: "var(--p)", marginTop: 4, fontWeight: 600 }}>
-                                      👥 {b.peopleCount || 1} { (b.peopleCount || 1) > 1 ? "People" : "Person" }
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '15px 18px', verticalAlign: 'top', textAlign: 'right' }}>
-                                    <div style={{ fontSize: 11, color: 'var(--muted2)', marginBottom: 8, fontFamily: 'monospace' }}>#{b.id}</div>
-                                    {b.verifiedBySecurity ? (
-                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                                        <span style={{ color: "var(--success)", fontSize: 13, fontWeight: 700 }}>✓ Verified</span>
-                                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>Checked-in by You</span>
-                                      </div>
-                                    ) : (
-                                      <button 
-                                        className="btn btn-p btn-sm"
-                                        style={{ padding: "6px 16px", height: "auto", boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' }}
-                                        onClick={() => handleVerify(b.id)}
-                                      >
-                                        Verify Attendance
-                                      </button>
-                                    )}
-                                  </td>
-                                </tr>
-                                {b.notes && (
-                                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                    <td colSpan="4" style={{ padding: '8px 18px', background: 'rgba(255,255,255,0.01)', fontSize: 11, color: 'var(--muted)' }}>
-                                      <span style={{ fontWeight: 700, color: 'var(--muted2)' }}>Notes: </span> {b.notes}
-                                    </td>
-                                  </tr>
-                                )}
-                              </Fragment>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                  {loading ? (
+                    <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading verification slots...</div>
+                  ) : bookings.filter(b => b.dt.includes(selectedDate.split('-').slice(0, 2).join(' '))).length === 0 ? (
+                    <div className="glass" style={{ padding: 40, textAlign: "center" }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>🛡️</div>
+                      <div style={{ fontWeight: 700, marginBottom: 8 }}>No bookings found</div>
+                      <p style={{ color: "var(--muted)", fontSize: 13 }}>There are no bookings matching your availability for this date.</p>
+                      <button className="btn btn-p btn-sm" style={{ marginTop: 15 }} onClick={() => handleDateChange(null)}>Back to Calendar</button>
                     </div>
-                  ))}
+                  ) : (
+                    bookings.filter(b => b.dt.includes(selectedDate.split('-').slice(0, 2).join(' '))).map(b => (
+                      <div key={b.id} className="glass" style={{ padding: 18, borderLeft: `4px solid ${b.verifiedBySecurity ? 'var(--success)' : 'var(--p)'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase' }}>{b.dt} • {b.t}</div>
+                            <div style={{ fontSize: 16, fontWeight: 900, marginTop: 4 }}>{b.u}</div>
+                          </div>
+                          <div className="badge bc" style={{ height: 'fit-content' }}>#{b.id}</div>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 15, background: 'rgba(255,255,255,0.03)', padding: 10, borderRadius: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 800 }}>SPECIALIST</div>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>{b.stf}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 800 }}>SERVICE</div>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>{b.svc}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontSize: 12, color: 'var(--muted2)' }}>
+                            👥 {b.peopleCount || 1} Guests
+                          </div>
+                          {b.verifiedBySecurity ? (
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ color: 'var(--success)', fontWeight: 800, fontSize: 13 }}>✓ VERIFIED</div>
+                              <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>STAMP: {b.verifiedByName || "Security"}</div>
+                            </div>
+                          ) : (
+                            <button className="btn btn-p btn-sm" onClick={() => setShowVerifyModal(b)}>Verify Details</button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
+              </>
             )}
           </>
+        )}
+
+        {/* ── Verify Confirmation Modal ── */}
+        {showVerifyModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div className="glass" style={{ maxWidth: 400, width: '100%', padding: 30, textAlign: 'center', border: '1px solid var(--p)' }}>
+              <div style={{ fontSize: 40, marginBottom: 15 }}>🛡️</div>
+              <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Confirm Verification</h2>
+              <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.6, marginBottom: 25 }}>
+                Are you sure? We are verifying all the details are correct for booking <strong style={{color:'var(--text)'}}>#{showVerifyModal.id}</strong>?
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-g" style={{ flex: 1 }} onClick={() => setShowVerifyModal(null)}>Cancel</button>
+                <button className="btn btn-p" style={{ flex: 1 }} onClick={() => handleVerify(showVerifyModal)}>Yes, Verify</button>
+              </div>
+            </div>
+          </div>
         )}
 
         {tab === "availability" && (
@@ -281,14 +356,14 @@ export default function SecurityDash({ user: initialUser, onSignOut, token }) {
       </div>
 
       <div className="bnav">
-        <div className={`bni ${tab === "shifts" ? "act" : ""}`} onClick={() => setTab("shifts")}>
+        <div className={`bni ${tab === "shifts" ? "act" : ""}`} onClick={() => handleTabChange("shifts")}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
           <span>Shifts</span>
         </div>
-        <div className={`bni ${tab === "availability" ? "act" : ""}`} onClick={() => setTab("availability")}>
+        <div className={`bni ${tab === "availability" ? "act" : ""}`} onClick={() => handleTabChange("availability")}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="12 6 12 12 16 14"></polyline>

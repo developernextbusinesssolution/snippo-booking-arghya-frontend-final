@@ -22,6 +22,12 @@ export function parsePath(pathname) {
     if (parts.length === 1) return { page: 'staff_auth', sub: null };
     if (parts[1] === 'dashboard') return { page: 'staff_dash', sub: parts[2] || 'schedule' };
   }
+  if (parts[0] === 'security') {
+    if (parts[1] === 'dashboard') {
+      if (parts[2] === 'schedule' && parts[3]) return { page: 'security_dash', sub: 'shifts', date: parts[3] };
+      return { page: 'security_dash', sub: parts[2] || 'shifts' };
+    }
+  }
   if (parts[0] === 'user') {
     if (parts[1] === 'dashboard') return { page: 'user_dash', sub: parts[2] || 'bookings' };
   }
@@ -38,6 +44,7 @@ export function buildPath(page, sub) {
     admin_dash: sub ? `/admin/dashboard/${sub}` : '/admin/dashboard',
     staff_auth: '/staff',
     staff_dash: sub ? `/staff/dashboard/${sub}` : '/staff/dashboard',
+    security_dash: (sub === 'shifts' && arguments[2]) ? `/security/dashboard/schedule/${arguments[2]}` : (sub ? `/security/dashboard/${sub}` : '/security/dashboard'),
     user_dash: sub ? `/user/dashboard/${sub}` : '/user/dashboard',
     payment: sub ? `/payment/${sub}` : '/',
   };

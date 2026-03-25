@@ -51,6 +51,8 @@ export default function App(){
   const [adminSec,setAdminSec]           = useState("overview");
   const [staffTab,setStaffTab]           = useState("schedule");
   const [userDashTab,setUserDashTab]     = useState("bookings");
+  const [securityTab,setSecurityTab]     = useState("shifts");
+  const [securityDate,setSecurityDate]   = useState(null);
   const [token,setToken]                 = useState(null);
   const [stripeKey,setStripeKey]         = useState(null);
   const [paymentBookingId,setPaymentBookingId]     = useState(null);
@@ -60,10 +62,10 @@ export default function App(){
   const [embedMode]                      = useState(()=>typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("embed")==="1");
   const embedUrl                         = typeof window!=="undefined"?`${window.location.origin}${window.location.pathname}?embed=1`:"?embed=1";
 
-  const navigate=(pg,sub=null)=>{
+   const navigate=(pg,sub=null,extra=null)=>{
     if(!embedMode){
-      const path=buildPath(pg,sub);
-      window.history.pushState({page:pg,sub},'',(window.location.search?path+(path.includes('?')?'&':'?')+window.location.search.slice(1):path));
+      const path=buildPath(pg,sub,extra);
+      window.history.pushState({page:pg,sub,extra},'',(window.location.search?path+(path.includes('?')?'&':'?')+window.location.search.slice(1):path));
     }
     setPage(pg);
     if(pg==='book_service')setSelectedServiceSlug(sub);
@@ -72,7 +74,10 @@ export default function App(){
       if(pg==='admin_dash')setAdminSec(sub);
       else if(pg==='staff_dash')setStaffTab(sub);
       else if(pg==='user_dash')setUserDashTab(sub);
+      else if(pg==='security_dash')setSecurityTab(sub);
     }
+    if(pg==='security_dash' && extra) setSecurityDate(extra);
+    else if(pg==='security_dash') setSecurityDate(null);
   };
 
   const applyPublicData=(data)=>{
@@ -102,7 +107,11 @@ export default function App(){
         if(pg==='admin_dash')setAdminSec(sub);
         else if(pg==='staff_dash')setStaffTab(sub);
         else if(pg==='user_dash')setUserDashTab(sub);
+        else if(pg==='security_dash')setSecurityTab(sub);
       }
+      const {date}=parsePath(window.location.pathname);
+      if(pg==='security_dash' && date) setSecurityDate(date);
+      else if(pg==='security_dash') setSecurityDate(null);
     };
     window.addEventListener('popstate',onPop);
     return()=>window.removeEventListener('popstate',onPop);
@@ -170,10 +179,15 @@ export default function App(){
           window.history.replaceState({page:'staff_dash',sub:tab},``,`/staff/dashboard/${tab}`);
         }
       }else if(me?.user?.role==="security"){
+        const tab=urlState.page==='security_dash'?urlState.sub||'shifts':'shifts';
+        const date=urlState.page==='security_dash'?urlState.date||null:null;
+        setSecurityTab(tab);
+        setSecurityDate(date);
         setSecurityUser(me.user);setUser(null);setAdmin(null);setStaffUser(null);
         setPage("security_dash");
         if(!window.location.pathname.startsWith('/security/dashboard')){
-          window.history.replaceState({page:'security_dash',sub:null},``,`/security/dashboard`);
+          const path = date ? `/security/dashboard/schedule/${date}` : `/security/dashboard/${tab}`;
+          window.history.replaceState({page:'security_dash',sub:tab,extra:date},``,path);
         }
       }else if(me?.user?.role==="user"){
         const tab=urlState.page==='user_dash'?urlState.sub||'bookings':'bookings';
@@ -487,7 +501,15 @@ export default function App(){
           {securityUser
             ? <>
                 <nav className="nav" style={{zIndex:200}}><div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo /></div></nav>
-                <SecurityDash user={securityUser} onSignOut={clearAuthState} token={token} />
+                <SecurityDash 
+                  user={securityUser} 
+                  onSignOut={clearAuthState} 
+                  token={token} 
+                  initialTab={securityTab}
+                  initialDate={securityDate}
+                  onTabChange={t => navigate("security_dash", t)}
+                  onDateChange={d => navigate("security_dash", "shifts", d)}
+                />
               </>
             : <>
                 <nav className="nav" style={{zIndex:200}}><div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo /></div></nav>
