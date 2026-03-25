@@ -82,6 +82,7 @@ export default function HomePage({
       <div style={{ 
         flex: 1.2, 
         padding: "40px", 
+        paddingTop: "calc(var(--nh) + 40px)",
         maxHeight: window.innerWidth < 1000 ? "none" : "100vh",
         overflowY: "auto",
         display: "flex",
