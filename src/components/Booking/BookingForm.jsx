@@ -146,7 +146,7 @@ function StepAccount({ det, onChange, user, onLoginClick }) {
     <div className="se anim-fade-in" style={{ maxWidth: 500, margin: "0 auto" }}>
       <div className="glass" style={{ padding: 24 }}>
         <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Profile Details</h3>
-        <p style={{ fontWeight: 700, marginBottom: 20 }}>{user.name} ({user.email})</p>
+        <p style={{ fontWeight: 700, marginBottom: 20, wordBreak: "break-all" }}>{user.name} ({user.email})</p>
         
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 12 }}>BILLING ADDRESS (Required for Stripe India)</div>

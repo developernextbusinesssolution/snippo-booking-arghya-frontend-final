@@ -18,7 +18,7 @@ export function PublicHeader({ user, onLoginClick, onSignOut, onGoAdmin, onGoSta
         {user && (
           <div style={{ padding: "9px 12px 13px", borderBottom: "1px solid var(--border)", marginBottom: 8 }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{user.name}</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>{user.email}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", wordBreak: "break-all" }}>{user.email}</div>
           </div>
         )}
         {!user && (

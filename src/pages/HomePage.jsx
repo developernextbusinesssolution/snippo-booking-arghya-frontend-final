@@ -34,7 +34,7 @@ export default function HomePage({
         flex: 1, 
         position: "relative", 
         overflow: "hidden",
-        minHeight: window.innerWidth < 1000 ? "30vh" : "100vh"
+        minHeight: window.innerWidth < 1000 ? "45vh" : "100vh"
       }}>
         {IMAGES.map((src, i) => (
           <div
@@ -81,8 +81,8 @@ export default function HomePage({
       {/* Right: Inline Booking Flow */}
       <div style={{ 
         flex: 1.2, 
-        padding: "40px", 
-        paddingTop: "calc(var(--nh) + 40px)",
+        padding: window.innerWidth < 1000 ? "24px 16px" : "40px", 
+        paddingTop: window.innerWidth < 1000 ? "24px" : "calc(var(--nh) + 40px)",
         maxHeight: window.innerWidth < 1000 ? "none" : "100vh",
         overflowY: "auto",
         display: "flex",
