@@ -23,28 +23,7 @@ export function PublicHeader({ user, onLoginClick, onSignOut, onGoAdmin, onGoSta
         )}
         {!user && (
           <>
-            {!embedMode && (
-              <div
-                className="di"
-                onClick={() => {
-                  close();
-                  onGoAdmin();
-                }}
-              >
-                Admin Portal
-              </div>
-            )}
-            {!embedMode && (
-              <div
-                className="di"
-                onClick={() => {
-                  close();
-                  onGoStaff();
-                }}
-              >
-                Staff Portal
-              </div>
-            )}
+
             <div
               className="di act"
               onClick={() => {
@@ -116,16 +95,7 @@ export function PublicHeader({ user, onLoginClick, onSignOut, onGoAdmin, onGoSta
         <div className="nav-right">
           {!user && (
             <>
-              {!embedMode && (
-                <button className="btn btn-o btn-sm nav-hide-sm" onClick={onGoAdmin}>
-                  Admin
-                </button>
-              )}
-              {!embedMode && (
-                <button className="btn btn-o btn-sm nav-hide-sm" onClick={onGoStaff}>
-                  Staff
-                </button>
-              )}
+
               <button className="btn btn-p btn-sm" onClick={onLoginClick}>
                 Login / Register
               </button>
