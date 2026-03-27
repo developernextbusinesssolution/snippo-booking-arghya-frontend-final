@@ -413,6 +413,7 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
   const [det, setDet] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
 
   const back = () => setStep(s => Math.max(0, s - 1));
   const next = () => setStep(s => s + 1);
@@ -428,7 +429,7 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
     try {
       const res = await apiRequest("/auth/check-email", { method: "POST", body: { email: det.email } });
       if (res.exists) {
-        if (confirm("Email exists. Sign in?")) onLoginClick();
+        setShowEmailExistsModal(true);
         setLoading(false);
         return;
       }
@@ -534,6 +535,21 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
         {step === 6 && <button className="btn btn-p" onClick={handleFinishRegistration} disabled={loading}>{loading ? "Processing..." : (user ? "Review Summary →" : "Create Profile →")}</button>}
       </div>
       {selectedStaff && <StaffDetailsModal member={selectedStaff} onClose={() => setSelectedStaff(null)} />}
+      {showEmailExistsModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div className="glass anim-fade-in" style={{ maxWidth: 450, width: "100%", padding: 32, textAlign: "center", border: "1px solid rgba(230,57,70,0.3)" }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>👋</div>
+            <h3 style={{ marginBottom: 16, fontWeight: 900 }}>Account Already Exists</h3>
+            <p style={{ lineHeight: 1.6, marginBottom: 28, fontSize: 15, color: "var(--text)" }}>
+              An account with the email <strong>{det.email}</strong> already exists. Would you like to sign in instead?
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button className="btn btn-g" style={{ flex: 1 }} onClick={() => setShowEmailExistsModal(false)}>Cancel</button>
+              <button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setShowEmailExistsModal(false); if(onLoginClick) onLoginClick(); }}>Sign In</button>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`.anim-fade-in { animation: fadeIn 0.4s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
   );

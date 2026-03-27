@@ -347,6 +347,7 @@ export default function App(){
             token={token}
             onBookService={svc => navigate('book_service', slugify(svc.name))}
             embedMode={embedMode}
+            onLoginClick={openAuth}
             embedHeader={embedMode?<PublicHeader
               user={user}
               onLoginClick={openAuth}

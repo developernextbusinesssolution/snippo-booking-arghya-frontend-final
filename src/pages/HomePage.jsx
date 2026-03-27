@@ -13,6 +13,7 @@ const IMAGES = [
 export default function HomePage({ 
   user, services, staff, bookings, busySlots, 
   onCreateBooking, onUserAuth, onNavigateToPayment, onGoDash, stripeKey, token,
+  onLoginClick,
   embedMode = false 
 }) {
   const [curr, setCurr] = useState(0);
@@ -112,6 +113,7 @@ export default function HomePage({
               onUserAuth={onUserAuth}
               onGoDash={onGoDash}
               onNavigateToPayment={onNavigateToPayment}
+              onLoginClick={onLoginClick}
             />
           </div>
         </div>
