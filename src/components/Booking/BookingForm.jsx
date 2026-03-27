@@ -116,7 +116,12 @@ function StepTime({ sel, onSel, busySlots, stf, staff, date, onBackToDate }) {
                 onClick={() => !disabled && onSel(t)}
                 style={isOutsideWorkingHours ? { opacity: 0.3, cursor: "not-allowed" } : {}}
               >
-                {t}
+                {(() => {
+                  const hour = parseInt(t.split(":")[0], 10);
+                  const ampm = hour >= 12 ? "PM" : "AM";
+                  const hour12 = hour % 12 || 12;
+                  return `${hour12}:00 ${ampm}`;
+                })()}
               </div>
             );
           })}
@@ -301,11 +306,11 @@ function StepDetails({ svc, peopleCount, setPeopleCount, additionalHours, setAdd
         )}
         
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 12 }}>HOW MANY PEOPLE ARE BRINGING? (MAX 10)</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 12 }}>HOW MANY GUEST ARE YOu BRINGING? (MAX 2)</div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setPeopleCount(Math.max(1, peopleCount - 1))}>-</button>
             <span style={{ fontSize: 24, fontWeight: 800, minWidth: 40, textAlign: "center" }}>{peopleCount}</span>
-            <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setPeopleCount(Math.min(10, peopleCount + 1))}>+</button>
+            <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setPeopleCount(Math.min(2, peopleCount + 1))}>+</button>
           </div>
         </div>
 
@@ -444,7 +449,11 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
     const summary = {
       serviceId: svc?.id, staffId: stf?.id, svc: svc?.name, stf: stf?.name,
       dt: date?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }),
-      t: time, p: `$${totalP}`, det: overrideDet || det,
+      t: time ? (() => {
+        const h = parseInt(time.split(":")[0], 10);
+        return `${h % 12 || 12}:00 ${h >= 12 ? "PM" : "AM"}`;
+      })() : time,
+      p: `$${totalP}`, det: overrideDet || det,
       peopleCount, additionalHours
     };
     sessionStorage.setItem("last_booking_summary", JSON.stringify(summary));
