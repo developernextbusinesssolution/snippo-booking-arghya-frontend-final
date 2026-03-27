@@ -497,7 +497,8 @@ export default function App(){
                   initialTab={securityTab}
                   initialDate={securityDate}
                   onTabChange={t => navigate("security_dash", t)}
-                  onDateChange={d => navigate("security_dash", "shifts", d)}
+                  onDateChange={d => navigate("security_dash", "shifts", d)}
+                  onUserUpdated={updatedAvail => setSecurityUser(prev => ({ ...prev, availability: updatedAvail }))}
                 />
               </>
             : <>

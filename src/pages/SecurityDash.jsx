@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment } from "react";
 import Toasts, { useToast } from "../components/Shared/Toasts";
 import { apiRequest } from "../utils/api";
 
-export default function SecurityDash({ user: initialUser, onSignOut, token, initialTab = "shifts", initialDate = null, onTabChange, onDateChange }) {
+export default function SecurityDash({ user: initialUser, onSignOut, token, initialTab = "shifts", initialDate = null, onTabChange, onDateChange, onUserUpdated }) {
   const [user, setUser] = useState(initialUser);
   const [tab, setTab] = useState(initialTab);
   const [bookings, setBookings] = useState([]);
@@ -76,6 +76,7 @@ export default function SecurityDash({ user: initialUser, onSignOut, token, init
       const res = await apiRequest("/security/availability", { method: "PUT", token, body: { availability: avail } });
       console.log("[SecurityDash] Save successful. Response:", res);
       setAvail(res.availability);
+      if (onUserUpdated) onUserUpdated(res.availability);
       toast("Availability saved!", "success");
     } catch (e) {
       console.error("[SecurityDash] Save failed:", e);
@@ -302,11 +303,13 @@ export default function SecurityDash({ user: initialUser, onSignOut, token, init
                         checked={dayAvail.enabled} 
                         style={{ width: 18, height: 18, cursor: 'pointer' }}
                         onChange={e => {
-                          const newAvail = [...avail];
-                          const foundIdx = newAvail.findIndex(a => a.day === d);
-                          if (foundIdx > -1) newAvail[foundIdx].enabled = e.target.checked;
-                          else newAvail.push({ day: d, enabled: e.target.checked, startTime: "09:00", endTime: "20:00" });
-                          setAvail(newAvail);
+                          const foundIdx = avail.findIndex(a => a.day === d);
+                          if (foundIdx > -1) {
+                            const newAvail = avail.map((a, i) => i === foundIdx ? { ...a, enabled: e.target.checked } : a);
+                            setAvail(newAvail);
+                          } else {
+                            setAvail([...avail, { day: d, enabled: e.target.checked, startTime: "09:00", endTime: "20:00" }]);
+                          }
                         }}
                       />
                       <span style={{ fontWeight: 600, color: dayAvail.enabled ? "var(--text)" : "var(--muted)" }}>{d}</span>
@@ -320,9 +323,7 @@ export default function SecurityDash({ user: initialUser, onSignOut, token, init
                           style={{ padding: '4px 8px', width: 110, height: 32, fontSize: 13 }}
                           value={dayAvail.startTime}
                           onChange={e => {
-                            const newAvail = [...avail];
-                            newAvail.find(a => a.day === d).startTime = e.target.value;
-                            setAvail(newAvail);
+                            setAvail(avail.map(a => a.day === d ? { ...a, startTime: e.target.value } : a));
                           }}
                         />
                         <span style={{ color: "var(--muted)" }}>to</span>
@@ -332,9 +333,7 @@ export default function SecurityDash({ user: initialUser, onSignOut, token, init
                           style={{ padding: '4px 8px', width: 110, height: 32, fontSize: 13 }}
                           value={dayAvail.endTime}
                           onChange={e => {
-                            const newAvail = [...avail];
-                            newAvail.find(a => a.day === d).endTime = e.target.value;
-                            setAvail(newAvail);
+                            setAvail(avail.map(a => a.day === d ? { ...a, endTime: e.target.value } : a));
                           }}
                         />
                       </div>
