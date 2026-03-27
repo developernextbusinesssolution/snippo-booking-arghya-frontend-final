@@ -327,6 +327,81 @@ function StepDetails({ svc, peopleCount, setPeopleCount, additionalHours, setAdd
   );
 }
 
+function StepIdentity({ det, onChange, user }) {
+  if (user && user.idDocument) {
+    return (
+      <div className="se anim-fade-in" style={{ maxWidth: 500, margin: "0 auto" }}>
+        <div className="glass" style={{ padding: 24, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>✅</div>
+          <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Identity Verified</h3>
+          <p style={{ color: "var(--muted)" }}>Your identity document is already on file.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) return alert("File size must be under 5MB");
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onChange({ ...det, idImage: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="se anim-fade-in" style={{ maxWidth: 500, margin: "0 auto" }}>
+      <div className="glass" style={{ padding: 24 }}>
+        <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Identity Verification</h3>
+        <p style={{ color: "var(--muted)", marginBottom: 20, fontSize: 13, lineHeight: 1.5 }}>
+          Please provide a valid government-issued ID (Passport, Driver's License, or State ID). This is required for security purposes.
+        </p>
+
+        <div style={{ 
+          border: "2px dashed rgba(255,255,255,0.2)", 
+          borderRadius: 16, 
+          padding: 32, 
+          textAlign: "center",
+          background: det.idImage ? "rgba(230,57,70,0.05)" : "transparent",
+          position: "relative",
+          transition: "all 0.2s ease"
+        }}>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleFileChange}
+            style={{ 
+              position: "absolute", 
+              inset: 0, 
+              width: "100%", 
+              height: "100%", 
+              opacity: 0, 
+              cursor: "pointer",
+              zIndex: 10
+            }} 
+          />
+          {det.idImage ? (
+            <div>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>
+              <div style={{ fontWeight: 700, color: "var(--red)" }}>ID Document Selected</div>
+              <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>Click to change file</div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>📤</div>
+              <div style={{ fontWeight: 700 }}>Click to Upload ID</div>
+              <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>JPEG, PNG (Max 5MB)</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BookingForm({ services, staff, bookings, onUserAuth, onNavigateToPayment, user, onLoginClick }) {
   const [step, setStep] = useState(0);
   const [date, setDate] = useState(null);
