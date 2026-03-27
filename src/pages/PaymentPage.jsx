@@ -34,6 +34,8 @@ function CheckoutForm({ booking, onCreateBooking, onPaymentSuccess, amount, toke
         staffId: booking.staffId,
         date: booking.dt,
         time: booking.t,
+        peopleCount: booking.peopleCount,
+        additionalHours: booking.additionalHours,
         details: { ...booking.det, notes: "Paid via summary page" }
       });
 
