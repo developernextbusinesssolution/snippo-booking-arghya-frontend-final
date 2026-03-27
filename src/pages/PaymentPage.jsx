@@ -153,7 +153,7 @@ export default function PaymentPage({ bookingId, onGoDash, onGoHome, stripeKey, 
     <div className="se anim-fade-in" style={{ maxWidth: 900, margin: "60px auto", padding: "0 20px" }}>
       <Progress step={6} steps={["Date", "Time", "Service", "Staff", "Account", "Identity", "Summary"]} />
       
-      <div style={{ marginTop: 40, display: "grid", gridTemplateColumns: "1fr 400px", gap: 32, alignItems: "start" }}>
+      <div className="pay-grid" style={{ marginTop: 40 }}>
         <div className="glass" style={{ padding: 40, borderRadius: 24 }}>
           <h2 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>Session Summary</h2>
           <p style={{ color: "var(--muted)", marginBottom: 32 }}>Review your session details before finalizing.</p>
@@ -230,7 +230,14 @@ export default function PaymentPage({ bookingId, onGoDash, onGoHome, stripeKey, 
         </div>
       </div>
       
-      <style>{`.anim-fade-in { animation: fadeIn 0.5s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <style>{`
+        .anim-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .pay-grid { display: grid; grid-template-columns: 1fr 400px; gap: 32px; align-items: start; }
+        @media (max-width: 768px) {
+          .pay-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </div>
   );
 }

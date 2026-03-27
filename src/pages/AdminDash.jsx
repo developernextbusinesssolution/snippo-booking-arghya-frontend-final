@@ -262,7 +262,8 @@ function BookingDetailModal({ booking, onClose, onStatusChange }) {
           ["Specialist", booking.stf],
           ["Date", booking.dt],
           ["Time", booking.t],
-          ["Amount", booking.p],
+          ["Number of Guests", booking.peopleCount || 1],
+          ["Base Amount", booking.basePrice || booking.p],
         ].map(([l, v]) => (
           <div key={l} className="drow">
             <span style={{ color: "var(--muted)" }}>{l}</span>
@@ -288,7 +289,7 @@ function BookingDetailModal({ booking, onClose, onStatusChange }) {
             <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", fontSize: 14 }}>
               <span style={{ fontWeight: 700 }}>Total Charged</span>
               <span style={{ fontWeight: 900, color: "var(--red)" }}>
-                {booking.p} + ${booking.additionalCost}
+                {booking.p}
               </span>
             </div>
           )}
