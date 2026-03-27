@@ -329,8 +329,6 @@ export default function App(){
             user={user}
             onLoginClick={openAuth}
             onSignOut={signOutUser}
-            onGoAdmin={() => navigate("admin_login")}
-            onGoStaff={() => navigate("staff_auth")}
             onGoDash={() => goUserDash("bookings")}
             onGoProfile={() => goUserDash("profile")}
             embedMode={embedMode}
@@ -353,8 +351,6 @@ export default function App(){
               user={user}
               onLoginClick={openAuth}
               onSignOut={signOutUser}
-              onGoAdmin={() => navigate("admin_login")}
-              onGoStaff={() => navigate("staff_auth")}
               onGoDash={() => goUserDash("bookings")}
               onGoProfile={() => goUserDash("profile")}
               embedMode={true}
@@ -368,8 +364,6 @@ export default function App(){
             user={user}
             onLoginClick={openAuth}
             onSignOut={signOutUser}
-            onGoAdmin={() => navigate("admin_login")}
-            onGoStaff={() => navigate("staff_auth")}
             onGoDash={() => goUserDash("bookings")}
             onGoProfile={() => goUserDash("profile")}
             embedMode={embedMode}
@@ -394,8 +388,6 @@ export default function App(){
               user={user}
               onLoginClick={openAuth}
               onSignOut={signOutUser}
-              onGoAdmin={() => navigate("admin_login")}
-              onGoStaff={() => navigate("staff_auth")}
               onGoDash={() => goUserDash("bookings")}
               onGoProfile={() => goUserDash("profile")}
               embedMode={true}
@@ -408,8 +400,6 @@ export default function App(){
           {!embedMode&&<PublicHeader
             user={user}
             onSignOut={signOutUser}
-            onGoAdmin={() => navigate("admin_login")}
-            onGoStaff={() => navigate("staff_auth")}
             onGoDash={() => goUserDash("bookings")}
             onGoProfile={() => goUserDash("profile")}
             embedMode={embedMode}
@@ -430,8 +420,6 @@ export default function App(){
             embedHeader={embedMode?<PublicHeader
               user={user}
               onSignOut={signOutUser}
-              onGoAdmin={() => navigate("admin_login")}
-              onGoStaff={() => navigate("staff_auth")}
               onGoDash={() => goUserDash("bookings")}
               onGoProfile={() => goUserDash("profile")}
               embedMode={true}
@@ -440,8 +428,8 @@ export default function App(){
         </>}
 
         {page==="user_dash" && !user && <>
-          {!embedMode&&<PublicHeader user={null} onLoginClick={openAuth} onGoAdmin={()=>navigate("admin_login")} onGoStaff={()=>navigate("staff_auth")} onGoDash={()=>goUserDash("bookings")} embedMode={embedMode}/>}
-          {embedMode&&<PublicHeader user={null} onLoginClick={openAuth} onGoAdmin={()=>navigate("admin_login")} onGoStaff={()=>navigate("staff_auth")} onGoDash={()=>goUserDash("bookings")} embedMode={true}/>}
+          {!embedMode&&<PublicHeader user={null} onLoginClick={openAuth} onGoDash={()=>goUserDash("bookings")} embedMode={embedMode}/>}
+          {embedMode&&<PublicHeader user={null} onLoginClick={openAuth} onGoDash={()=>goUserDash("bookings")} embedMode={true}/>}
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:embedMode?"100vh":"calc(100vh - var(--nh))",gap:14,textAlign:"center",padding:32}}>
             <div style={{fontSize:46}}>LOCK</div>
             <div style={{fontWeight:900,fontSize:22,letterSpacing:"-.03em"}}>Sign in required</div>

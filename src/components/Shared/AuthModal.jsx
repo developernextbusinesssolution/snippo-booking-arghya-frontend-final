@@ -26,6 +26,10 @@ export default function AuthModal({ onClose, onAuth, initTab = "register" }) {
         setErr("Please enter your full name");
         return;
       }
+      if (!f.address?.trim() || !f.city?.trim() || !f.zip?.trim() || !f.country?.trim()) {
+        setErr("Please fill in all address fields for billing");
+        return;
+      }
       if (!idFile) {
         setErr("Please upload your ID image");
         return;
@@ -46,12 +50,17 @@ export default function AuthModal({ onClose, onAuth, initTab = "register" }) {
         formData.append("email", f.email);
         formData.append("password", f.pass);
         formData.append("phone", f.phone);
+        formData.append("address", f.address || "");
+        formData.append("city", f.city || "");
+        formData.append("state", f.state || "");
+        formData.append("zip", f.zip || "");
+        formData.append("country", (f.country || "").toUpperCase().slice(0, 2));
+
         if (idFile) formData.append("idDocument", idFile);
 
         payload = await apiRequest("/auth/register-user", {
           method: "POST",
           body: formData,
-          // apiRequest needs to handle FormData or we need to pass headers: null to let browser set it
         });
       }
       onAuth(payload);
@@ -64,7 +73,7 @@ export default function AuthModal({ onClose, onAuth, initTab = "register" }) {
 
   return (
     <div className="mov" onClick={() => onClose()}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
         <button
           onClick={onClose}
           style={{
@@ -179,8 +188,45 @@ export default function AuthModal({ onClose, onAuth, initTab = "register" }) {
                 value={f.phone}
                 onChange={(e) => setF({ ...f, phone: e.target.value })}
               />
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                <label style={{ fontSize: 12, color: "var(--muted)", marginLeft: 4 }}>Provide your ID image</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginLeft: 4 }}>BILLING ADDRESS (Required)</label>
+                <input
+                  className="inp"
+                  placeholder="Street Address"
+                  value={f.address || ""}
+                  onChange={(e) => setF({ ...f, address: e.target.value })}
+                />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+                  <input
+                    className="inp"
+                    placeholder="City"
+                    value={f.city || ""}
+                    onChange={(e) => setF({ ...f, city: e.target.value })}
+                  />
+                  <input
+                    className="inp"
+                    placeholder="Zip Code"
+                    value={f.zip || ""}
+                    onChange={(e) => setF({ ...f, zip: e.target.value })}
+                  />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+                  <input
+                    className="inp"
+                    placeholder="State"
+                    value={f.state || ""}
+                    onChange={(e) => setF({ ...f, state: e.target.value })}
+                  />
+                  <input
+                    className="inp"
+                    placeholder="Country (e.g. US)"
+                    value={f.country || ""}
+                    onChange={(e) => setF({ ...f, country: e.target.value.toUpperCase().slice(0, 2) })}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginLeft: 4 }}>ID VERIFICATION IMAGE</label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
                   style={{

@@ -364,8 +364,17 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
     setTab(t);
     onTabChange?.(t);
   };
-  const [prof, setProf] = useState({ name: user?.name || "", email: user?.email || "", phone: user?.phone || "" });
-  const [saved, setSaved] = useState({ ...prof });
+  const [prof, setProf] = useState({ 
+    name: user?.name || "", 
+    email: user?.email || "", 
+    phone: user?.phone || "",
+    address: user?.address || "",
+    city: user?.city || "",
+    state: user?.state || "",
+    zip: user?.zip || "",
+    country: user?.country || ""
+  });
+  const [saved, setSaved] = useState({ ...prof, idDocument: user?.idDocument });
   const [settings, setSettings] = useState({ email: true, sms: false, marketing: false });
   const [bDetail, setBDetail] = useState(null);
   const [extBooking, setExtBooking] = useState(null);
@@ -840,6 +849,36 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
                     <input className="inp" type={fi.t} value={prof[fi.k] || ""} onChange={e => setProf({ ...prof, [fi.k]: e.target.value })} />
                   </div>
                 ))}
+                
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                  <label className="lbl" style={{ fontSize: 11, color: "var(--muted)", marginBottom: 12 }}>BILLING ADDRESS</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <label className="lbl">STREET ADDRESS</label>
+                      <input className="inp" value={prof.address || ""} onChange={e => setProf({ ...prof, address: e.target.value })} />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div>
+                        <label className="lbl">CITY</label>
+                        <input className="inp" value={prof.city || ""} onChange={e => setProf({ ...prof, city: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="lbl">ZIP CODE</label>
+                        <input className="inp" value={prof.zip || ""} onChange={e => setProf({ ...prof, zip: e.target.value })} />
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div>
+                        <label className="lbl">STATE</label>
+                        <input className="inp" value={prof.state || ""} onChange={e => setProf({ ...prof, state: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="lbl">COUNTRY (2-LETTER)</label>
+                        <input className="inp" value={prof.country || ""} onChange={e => setProf({ ...prof, country: e.target.value.toUpperCase().slice(0, 2) })} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 {saved.idDocument && (
                   <div style={{ marginTop: 15, paddingTop: 15, borderTop: "1px solid var(--border)" }}>
                     <label className="lbl">ID VERIFICATION DOCUMENT</label>

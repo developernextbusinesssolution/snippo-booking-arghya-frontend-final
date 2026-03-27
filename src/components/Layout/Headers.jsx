@@ -1,7 +1,7 @@
 import { useState } from "react";
 import BrandLogo from "../Shared/BrandLogo";
 
-export function PublicHeader({ user, onLoginClick, onSignOut, onGoAdmin, onGoStaff, onGoDash, onGoProfile, embedMode = false }) {
+export function PublicHeader({ user, onLoginClick, onSignOut, onGoDash, onGoProfile, embedMode = false }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 

@@ -127,11 +127,24 @@ function StepTime({ sel, onSel, busySlots, stf, staff, date, onBackToDate }) {
 }
 
 function StepService({ sel, onSel, services }) {
+  const [showModal, setShowModal] = useState(false);
+  const [pendingSvc, setPendingSvc] = useState(null);
+
+  const handleClick = (s) => {
+    setPendingSvc(s);
+    setShowModal(true);
+  };
+
+  const handleAccept = () => {
+    onSel(pendingSvc);
+    setShowModal(false);
+  };
+
   return (
     <div className="se anim-fade-in">
       <div className="sg">
         {services.filter(s => s.active).map(s => (
-          <div key={s.id} className={`scard ${sel?.id === s.id ? "sel" : ""}`} onClick={() => onSel(s)}>
+          <div key={s.id} className={`scard ${sel?.id === s.id ? "sel" : ""}`} onClick={() => handleClick(s)}>
             <div className="simg">
               {s.img ? <img src={s.img} alt={s.name} /> : <div className="simg-fb">🧖</div>}
             </div>
@@ -146,6 +159,18 @@ function StepService({ sel, onSel, services }) {
           </div>
         ))}
       </div>
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div className="glass anim-fade-in" style={{ maxWidth: 450, padding: 32, textAlign: "center", border: "1px solid rgba(230,57,70,0.3)" }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🎙️</div>
+            <h3 style={{ marginBottom: 16, fontWeight: 900 }}>Booking Terms</h3>
+            <p style={{ lineHeight: 1.6, marginBottom: 28, fontSize: 15, color: "var(--text)" }}>
+              Studio Recording $60 per hour initial booking. 2hr minimum required, after initial booking each additional hour is $60 per session
+            </p>
+            <button className="btn btn-p" style={{ width: "100%", padding: "14px" }} onClick={handleAccept}>I accepted</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -260,36 +285,42 @@ function StepAccount({ det, onChange, user, onLoginClick }) {
   );
 }
 
-function StepIdentity({ det, onChange, user }) {
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => onChange({ ...det, idImage: reader.result });
-    reader.readAsDataURL(file);
-  };
-
-  if (user?.idDocument) {
-    return (
-      <div className="se anim-fade-in" style={{ textAlign: "center", padding: 40 }}>
-        <div className="glass" style={{ padding: 32 }}>
-          <h3 style={{ fontWeight: 800 }}>Identity Verified</h3>
-          <img src={user.idDocument} alt="ID" style={{ width: 120, height: 80, borderRadius: 8, marginTop: 20 }} />
-        </div>
-      </div>
-    );
-  }
+function StepDetails({ svc, peopleCount, setPeopleCount, additionalHours, setAdditionalHours }) {
+  const isStudio = svc?.name === "Studio Recording";
+  const basePrice = svc?.price || 0;
+  const totalPrice = basePrice + (additionalHours * 60);
 
   return (
     <div className="se anim-fade-in" style={{ maxWidth: 500, margin: "0 auto" }}>
       <div className="glass" style={{ padding: 24 }}>
-        <h3 style={{ marginBottom: 20, fontWeight: 800 }}>Identity Verification</h3>
-        <div 
-          style={{ border: "2px dashed rgba(255,255,255,0.1)", borderRadius: 12, padding: 24, textAlign: "center", cursor: "pointer" }}
-          onClick={() => document.getElementById('id-upload').click()}
-        >
-          {det.idImage ? <img src={det.idImage} alt="ID" style={{ maxWidth: "100%", maxHeight: 180 }} /> : <div>Upload ID Image</div>}
-          <input id="id-upload" type="file" hidden accept="image/*" onChange={handleFile} />
+        <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Booking Details</h3>
+        {isStudio && (
+          <div className="badge bx" style={{ background: "rgba(230,57,70,0.1)", color: "var(--red)", border: "1px solid var(--red)", padding: "10px 14px", marginBottom: 20, fontSize: 13, lineHeight: 1.5, borderRadius: 12 }}>
+            <strong>Studio Recording:</strong> $60 per hour initial booking. 2hr minimum required, after initial booking each additional hour is $60 per session.
+          </div>
+        )}
+        
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 12 }}>HOW MANY PEOPLE ARE BRINGING? (MAX 10)</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setPeopleCount(Math.max(1, peopleCount - 1))}>-</button>
+            <span style={{ fontSize: 24, fontWeight: 800, minWidth: 40, textAlign: "center" }}>{peopleCount}</span>
+            <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setPeopleCount(Math.min(10, peopleCount + 1))}>+</button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 12 }}>ADDITIONAL HOURS ($60/hr)</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setAdditionalHours(Math.max(0, additionalHours - 1))}>-</button>
+            <span style={{ fontSize: 24, fontWeight: 800, minWidth: 40, textAlign: "center" }}>+{additionalHours}h</span>
+            <button className="btn btn-g btn-icon" style={{ borderRadius: "50%", width: 42, height: 42 }} onClick={() => setAdditionalHours(additionalHours + 1)}>+</button>
+          </div>
+        </div>
+
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 20, marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>Total Service Cost:</span>
+          <span style={{ fontSize: 28, fontWeight: 900, color: "var(--red)" }}>${totalPrice}</span>
         </div>
       </div>
     </div>
@@ -302,6 +333,8 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
   const [time, setTime] = useState(null);
   const [svc, setSvc] = useState(null);
   const [stf, setStf] = useState(null);
+  const [peopleCount, setPeopleCount] = useState(1);
+  const [additionalHours, setAdditionalHours] = useState(0);
   const [det, setDet] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -312,7 +345,7 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
   const handleContinueFromAccount = async () => {
     if (user) {
       if (user.idDocument) handleFinishSummary();
-      else setStep(5);
+      else setStep(6);
       return;
     }
     if (!det.name || !det.email || !det.password) return alert("Required fields missing");
@@ -324,16 +357,19 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
         setLoading(false);
         return;
       }
-      setStep(5);
+      setStep(6);
     } catch (err) { alert("Check failed"); }
     finally { setLoading(false); }
   };
 
   const handleFinishSummary = (overrideDet) => {
+    const basePrice = svc?.price || 0;
+    const totalP = basePrice + (additionalHours * 60);
     const summary = {
       serviceId: svc?.id, staffId: stf?.id, svc: svc?.name, stf: stf?.name,
       dt: date?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }),
-      t: time, p: svc?.price, det: overrideDet || det
+      t: time, p: `$${totalP}`, det: overrideDet || det,
+      peopleCount, additionalHours
     };
     sessionStorage.setItem("last_booking_summary", JSON.stringify(summary));
     onNavigateToPayment("summary");
@@ -357,26 +393,31 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
   };
 
   useEffect(() => {
-    if (user && (!det.name || !det.email)) {
-      setDet(prev => ({
-        ...prev,
-        name: prev.name || user.name || "",
-        email: prev.email || user.email || "",
-        phone: prev.phone || user.phone || "",
-        address: prev.address || user.address || "",
-        city: prev.city || user.city || "",
-        state: prev.state || user.state || "",
-        zip: prev.zip || user.zip || "",
-        country: prev.country || user.country || ""
-      }));
+    if (user) {
+      console.log("[BookingForm] Syncing user data to fields:", user);
+      setDet(prev => {
+        const updated = { ...prev };
+        let changed = false;
+
+        const fields = ["name", "email", "phone", "address", "city", "state", "zip", "country"];
+        fields.forEach(f => {
+          if (!updated[f] && user[f]) {
+            console.log(`[BookingForm] Pre-filling field: ${f} = ${user[f]}`);
+            updated[f] = user[f];
+            changed = true;
+          }
+        });
+
+        return changed ? updated : prev;
+      });
     }
-  }, [user, det.name, det.email]);
+  }, [user]);
 
   useEffect(() => {
-    if (user && (step === 4 || step === 5)) {
+    if (user && (step === 5 || step === 6)) {
       // If address is missing and we are on the account step, don't auto-skip
       const hasAddress = det.address && det.city && det.zip && det.country;
-      if (step === 4 && !hasAddress) return;
+      if (step === 5 && !hasAddress) return;
 
       if (user.idDocument) {
         const updated = {
@@ -393,11 +434,11 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
         setDet(updated);
         handleFinishSummary(updated);
       }
-      else if (step === 4) setStep(5);
+      else if (step === 5) setStep(6);
     }
   }, [user, step]);
 
-  const steps = ["Date", "Time", "Service", "Staff", "Account", "Identity"];
+  const steps = ["Date", "Time", "Service", "Staff", "Details", "Account", "Identity"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -407,13 +448,15 @@ export default function BookingForm({ services, staff, bookings, onUserAuth, onN
         {step === 1 && <StepTime sel={time} onSel={t => { setTime(t); next(); }} busySlots={bookings} stf={stf} staff={staff} date={date} onBackToDate={back} />}
         {step === 2 && <StepService sel={svc} onSel={s => { setSvc(s); next(); }} services={services} />}
         {step === 3 && <StepStaff sel={stf} onSel={s => { setStf(s); next(); }} staff={staff} svcId={svc?.id} date={date} time={time} onDetails={setSelectedStaff} onBackToSvc={back} onBackToTime={() => setStep(1)} />}
-        {step === 4 && <StepAccount det={det} onChange={setDet} user={user} onLoginClick={onLoginClick} />}
-        {step === 5 && <StepIdentity det={det} onChange={setDet} user={user} />}
+        {step === 4 && <StepDetails svc={svc} peopleCount={peopleCount} setPeopleCount={setPeopleCount} additionalHours={additionalHours} setAdditionalHours={setAdditionalHours} />}
+        {step === 5 && <StepAccount det={det} onChange={setDet} user={user} onLoginClick={onLoginClick} />}
+        {step === 6 && <StepIdentity det={det} onChange={setDet} user={user} />}
       </div>
       <div className="bfoot" style={{ justifyContent: "center", gap: 16 }}>
         {step > 0 && <button className="btn btn-g" onClick={back}>← Back</button>}
-        {step === 4 && <button className="btn btn-p" onClick={handleContinueFromAccount} disabled={loading}>{loading ? "Checking..." : "Continue →"}</button>}
-        {step === 5 && <button className="btn btn-p" onClick={handleFinishRegistration} disabled={loading}>{loading ? "Processing..." : (user ? "Review Summary →" : "Create Profile →")}</button>}
+        {step === 4 && <button className="btn btn-p" onClick={next}>Continue →</button>}
+        {step === 5 && <button className="btn btn-p" onClick={handleContinueFromAccount} disabled={loading}>{loading ? "Checking..." : "Continue →"}</button>}
+        {step === 6 && <button className="btn btn-p" onClick={handleFinishRegistration} disabled={loading}>{loading ? "Processing..." : (user ? "Review Summary →" : "Create Profile →")}</button>}
       </div>
       {selectedStaff && <StaffDetailsModal member={selectedStaff} onClose={() => setSelectedStaff(null)} />}
       <style>{`.anim-fade-in { animation: fadeIn 0.4s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>

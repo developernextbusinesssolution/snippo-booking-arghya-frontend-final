@@ -20,8 +20,6 @@ export default function BookingPage({
   onUserAuth,
   onLoginClick,
   onSignOut,
-  onGoAdmin,
-  onGoStaff,
   embedMode = false,
   embedHeader = null,
 }) {
