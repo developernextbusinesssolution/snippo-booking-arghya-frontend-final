@@ -66,20 +66,25 @@ function StepTime({ sel, onSel, busySlots, stf, staff, date, onBackToDate }) {
     return { enabled: !!s.avail?.[idx], startTime: "09:00", endTime: "18:00" };
   };
 
+  const checkAvail = (av, t) => {
+    if (!av) return false;
+    const inBlock1 = av.enabled && isTimeInRange(t, av.startTime, av.endTime);
+    const inBlock2 = av.enabled2 && isTimeInRange(t, av.startTime2, av.endTime2);
+    return inBlock1 || inBlock2;
+  };
+
   const filteredTimes = TIMES.filter(t => {
     if (blockedTimes.includes(t)) return false;
     
     if (stf) {
       const av = getDayAvail(stf, dayName);
-      if (!av || !av.enabled) return false;
-      return isTimeInRange(t, av.startTime, av.endTime);
+      return checkAvail(av, t);
     } else {
       // If no staff selected, show time if AT LEAST ONE staff is available
       return staff.some(s => {
         if (!s.active) return false;
         const av = getDayAvail(s, dayName);
-        if (!av || !av.enabled) return false;
-        return isTimeInRange(t, av.startTime, av.endTime);
+        return checkAvail(av, t);
       });
     }
   });
@@ -205,8 +210,10 @@ function StepStaff({ sel, onSel, staff, svcId, date, time, onDetails, onBackToSv
     // Check if staff is available on this day and time
     if (dayName && time) {
       const av = getDayAvail(s, dayName);
-      if (!av || !av.enabled) return false;
-      if (!isTimeInRange(time, av.startTime, av.endTime)) return false;
+      if (!av) return false;
+      const inBlock1 = av.enabled && isTimeInRange(time, av.startTime, av.endTime);
+      const inBlock2 = av.enabled2 && isTimeInRange(time, av.startTime2, av.endTime2);
+      if (!inBlock1 && !inBlock2) return false;
     }
     return true;
   });

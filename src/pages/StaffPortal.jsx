@@ -176,12 +176,24 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
   });
   const [saved, setSaved] = useState({ ...prof });
   const [avail, setAvail] = useState(me?.avail || [true, true, true, true, true, false, false]);
-  const [availability, setAvailability] = useState(me?.availability?.length === 7 ? me.availability : DAYS.map((d, i) => ({
-    day: d,
-    enabled: me?.avail?.[i] ?? (i < 5),
-    startTime: "09:00",
-    endTime: "18:00"
-  })));
+  const [availability, setAvailability] = useState(
+    me?.availability?.length === 7 
+      ? me.availability.map(a => ({
+          ...a,
+          enabled2: a.enabled2 || false,
+          startTime2: a.startTime2 || "18:00",
+          endTime2: a.endTime2 || "23:59"
+        }))
+      : DAYS.map((d, i) => ({
+          day: d,
+          enabled: me?.avail?.[i] ?? (i < 5),
+          startTime: "09:00",
+          endTime: "18:00",
+          enabled2: false,
+          startTime2: "18:00",
+          endTime2: "23:59"
+        }))
+  );
   const [myServices, setMyServices] = useState(me?.services || []);
 
   // Sync state if 'me' changes (e.g. after fresh load or update)
@@ -199,13 +211,21 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
       });
       if (me.avail) setAvail(me.avail);
       if (me.availability?.length === 7) {
-        setAvailability(me.availability);
+        setAvailability(me.availability.map(a => ({
+          ...a,
+          enabled2: a.enabled2 || false,
+          startTime2: a.startTime2 || "18:00",
+          endTime2: a.endTime2 || "23:59"
+        })));
       } else if (me.avail) {
         setAvailability(DAYS.map((d, i) => ({
           day: d,
           enabled: !!me.avail[i],
           startTime: "09:00",
-          endTime: "18:00"
+          endTime: "18:00",
+          enabled2: false,
+          startTime2: "18:00",
+          endTime2: "23:59"
         })));
       }
       if (me.services) setMyServices(me.services);
@@ -214,7 +234,15 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const { toasts, toast } = useToast();
-  const myBookings = bookings.filter(b => (b.staffId && b.staffId === me?.id) || (b.staffId && b.staffId === staffUser?.staffId));
+  const myBookings = bookings.filter(b => (b.staffId && String(b.staffId) === String(me?.id)) || (b.staffId && String(b.staffId) === String(staffUser?.staffId)));
+
+  useEffect(() => {
+    console.log("--- STAFF PORTAL DEBUG ---");
+    console.log("All Bookings passed to StaffPortal:", bookings);
+    console.log("Current Staff (me):", me);
+    console.log("StaffUser Object:", staffUser);
+    console.log("Filtered Bookings (myBookings):", myBookings);
+  }, [bookings, me, staffUser]);
   const bmap = { upcoming: "bu", completed: "bc", cancelled: "bx", active: "ba" };
 
   const nav = [
@@ -502,37 +530,89 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
               </div>
               <div style={{ marginBottom: 18 }}>
                 {availability.map((a, i) => (
-                  <div key={a.day} style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10, padding: "12px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: a.enabled ? "var(--text)" : "var(--muted)" }}>{a.day}</div>
-                    
-                    {a.enabled ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <input 
-                          type="time" 
-                          className="inp" 
-                          style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
-                          value={a.startTime || "09:00"} 
-                          onChange={e => {
-                            const updated = [...availability];
-                            updated[i].startTime = e.target.value;
-                            setAvailability(updated);
-                          }}
-                        />
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>to</span>
-                        <input 
-                          type="time" 
-                          className="inp" 
-                          style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
-                          value={a.endTime || "18:00"} 
-                          onChange={e => {
-                            const updated = [...availability];
-                            updated[i].endTime = e.target.value;
-                            setAvailability(updated);
-                          }}
-                        />
+                  <div key={a.day} style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10, alignItems: "center" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: a.enabled ? "var(--text)" : "var(--muted)" }}>{a.day}</div>
+                      
+                      {a.enabled ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "var(--muted)", width: 45 }}>Block 1</span>
+                          <input 
+                            type="time" 
+                            className="inp" 
+                            style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
+                            value={a.startTime || "09:00"} 
+                            onChange={e => {
+                              const updated = [...availability];
+                              updated[i].startTime = e.target.value;
+                              setAvailability(updated);
+                            }}
+                          />
+                          <span style={{ fontSize: 11, color: "var(--muted)" }}>to</span>
+                          <input 
+                            type="time" 
+                            className="inp" 
+                            style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
+                            value={a.endTime || "18:00"} 
+                            onChange={e => {
+                              const updated = [...availability];
+                              updated[i].endTime = e.target.value;
+                              setAvailability(updated);
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: "var(--muted2)", fontStyle: "italic" }}>Day off</div>
+                      )}
+                    </div>
+                    {a.enabled && (
+                      <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10, alignItems: "center" }}>
+                        <div />
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 45, display: "flex", alignItems: "center" }}>
+                            <input 
+                              type="checkbox" 
+                              checked={a.enabled2 || false} 
+                              onChange={e => {
+                                const updated = [...availability];
+                                updated[i].enabled2 = e.target.checked;
+                                setAvailability(updated);
+                              }}
+                              style={{ marginRight: 6 }}
+                            />
+                            <span style={{ fontSize: 11, color: "var(--muted)" }}>Block 2</span>
+                          </div>
+                          {a.enabled2 ? (
+                            <>
+                              <input 
+                                type="time" 
+                                className="inp" 
+                                style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
+                                value={a.startTime2 || "18:00"} 
+                                onChange={e => {
+                                  const updated = [...availability];
+                                  updated[i].startTime2 = e.target.value;
+                                  setAvailability(updated);
+                                }}
+                              />
+                              <span style={{ fontSize: 11, color: "var(--muted)" }}>to</span>
+                              <input 
+                                type="time" 
+                                className="inp" 
+                                style={{ padding: "4px 8px", fontSize: 12, width: 110 }} 
+                                value={a.endTime2 || "23:59"} 
+                                onChange={e => {
+                                  const updated = [...availability];
+                                  updated[i].endTime2 = e.target.value;
+                                  setAvailability(updated);
+                                }}
+                              />
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 12, color: "var(--muted2)", fontStyle: "italic", marginLeft: 4 }}>Disabled</div>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: "var(--muted2)", fontStyle: "italic" }}>Day off</div>
                     )}
                   </div>
                 ))}
